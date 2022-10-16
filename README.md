@@ -30,5 +30,5 @@ graph codegen && graph build
 graph deploy --studio {subgraph_name}
 
 # DEPLOY SUBGRAPH TO HOSTED
-graph deploy --hosted {your_github_account}/{subgraph_name}
+graph deploy --product hosted-service {your_github_account}/{subgraph_name}
 ```
