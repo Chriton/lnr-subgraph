@@ -27,7 +27,7 @@ cd {subgraph_folder}
 graph codegen && graph build
 
 # DEPLOY SUBGRAPH TO STUDIO
-graph deploy --studio {subgraph_name}
+graph deploy --product subgraph-studio {subgraph_name}
 
 # DEPLOY SUBGRAPH TO HOSTED
 graph deploy --product hosted-service {your_github_account}/{subgraph_name}
