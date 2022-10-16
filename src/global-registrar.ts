@@ -1,27 +1,26 @@
 import {Bytes} from "@graphprotocol/graph-ts"
 import {
-    GlobalRegistrar,
-    Changed,
-    PrimaryChanged
+    GlobalRegistrar as LNRContract,
+    Changed as ChangedEvent,
+    PrimaryChanged as PrimaryChangedEvent
 } from "../generated/GlobalRegistrar/GlobalRegistrar"
 import {Domain, User} from "../generated/schema"
 
 // ---------------- Event handlers ----------------
 
-export function handleChanged(event: Changed): void {
+export function handleChanged(event: ChangedEvent): void {
 
     // Quick and dirty. I know ... ngmi
-    let contract = GlobalRegistrar.bind(event.address)
+    let lnrContract = LNRContract.bind(event.address)
 
     let domainEntity = loadDomainEntity(event)
     let domain = event.params.name
-    let primary = contract.addr(event.params.name)
-    let subRegistrar = contract.subRegistrar(event.params.name)
-    let content = contract.content(event.params.name)
 
-    // if (owner.toHexString() != '0x0000000000000000000000000000000000000000') {
-        //domainEntity.owner = user.
-    // }
+    // time expensive
+    let primary = lnrContract.addr(event.params.name)
+    let subRegistrar = lnrContract.subRegistrar(event.params.name)
+    let content = lnrContract.content(event.params.name)
+    let owner = lnrContract.owner(event.params.name)
 
     // if (domain.toHexString() != '0x0000000000000000000000000000000000000000000000000000000000000000') {
         domainEntity.domainBytecode = domain
@@ -29,47 +28,47 @@ export function handleChanged(event: Changed): void {
     // }
 
     // if (primary.toHexString() != '0x0000000000000000000000000000000000000000') {
-    //     domainEntity.primary = primary
+        domainEntity.primary = primary
     // }
 
     // if (subRegistrar.toHexString() != '0x0000000000000000000000000000000000000000') {
-    //     domainEntity.subRegistrar = subRegistrar
+        domainEntity.subRegistrar = subRegistrar
     // }
 
     // if (content.toHexString() != '0x0000000000000000000000000000000000000000000000000000000000000000') {
-    //     domainEntity.content = content
+        domainEntity.content = content
     // }
 
-    domainEntity.owner = contract.owner(event.params.name).toHexString()
+    domainEntity.owner = owner.toHexString()
     domainEntity.save()
-    loadUserEntity(contract.owner(event.params.name))
+    loadUserEntity(owner)
 }
 
 // export function handlePrimaryChanged(event: PrimaryChanged): void {}
 
 // ---------------- Function call handlers ----------------
 
-// export function handleReserve(event: Changed): void {
+// export function handleReserve(event: ChangedEvent): void {
     // let domainEntity = loadDomainEntity(event)
 
     // domainEntity.registeredTimestamp = event.block.timestamp
     // domainEntity.registeredBlock = event.block.number
 // }
 
-// export function handleTransfer(event: Changed): void {}
+// export function handleTransfer(event: ChangedEvent): void {}
 //
-// export function handleDisown(event: Changed): void {}
+// export function handleDisown(event: ChangedEvent): void {}
 //
-// export function handleSetAddress(event: Changed): void {}
+// export function handleSetAddress(event: ChangedEvent): void {}
 //
-// export function handleSetSubRegistrar(event: Changed): void {}
+// export function handleSetSubRegistrar(event: ChangedEvent): void {}
 //
-// export function handleSetContent(event: Changed): void {}
+// export function handleSetContent(event: ChangedEvent): void {}
 
 
 // ---------------- Helpers ----------------
 
-export function loadDomainEntity(event: Changed): Domain {
+export function loadDomainEntity(event: ChangedEvent): Domain {
     // use toHex() instead of toHexString() ?
     let entity = Domain.load("id-".concat(event.params.name.toHexString()))
 
