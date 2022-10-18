@@ -12,9 +12,19 @@ type Domain @entity {
   subRegistrar: Bytes
   "value is bytes32"
   content: Bytes
+  blockNumber: BigInt!
+  reserveDate: BigInt!
+  reservedBy: Bytes!
+}
+
+type WrappedDomain @entity {
+  id: ID!
+  "value is a User entity"
+  owner: User!
 }
 
 type User @entity {
   id: ID!
   tokens: [Domain!]! @derivedFrom(field: "owner")
+  wrappedTokens: [WrappedDomain!]! @derivedFrom(field: "owner")
 }

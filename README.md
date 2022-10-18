@@ -23,6 +23,6 @@ graph auth --studio {your_key}
 graph codegen && graph build
 
 # DEPLOY THE SUBGRAPH TO STUDIO OR TO HOSTED (FREE VERSION)
-graph deploy --studio {subgraph_name}
-graph deploy --hosted {your_github_account}/{subgraph_name}
+graph deploy --product subgraph-studio {subgraph_name}
+graph deploy --product hosted-service {your_github_account}/{subgraph_name}
 ```
