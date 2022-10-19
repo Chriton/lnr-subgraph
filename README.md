@@ -1,12 +1,12 @@
 # Linagee subgraph
 
-### TODO - add description
+##### Linagee subgraph to keep track of tokens minted by users
 
 # How to deploy this subgraph
 
-- Create an account at [thegraph](https://thegraph.com/) 
-- From the Subgraph Studio(not free) or Hosted Service (free) section create a subgraph.
-The Subgraph Studio / Hosted Service section will also have installation instructions.
+- Create an account at [thegraph](https://thegraph.com/)
+- From the Subgraph Studio(not free) or Hosted Service (free) section create a subgraph.   
+  Note that the Subgraph Studio / Hosted Service section will also have installation instructions.
 - After you create it, follow these steps to deploy this graph:
 
 ```shell
