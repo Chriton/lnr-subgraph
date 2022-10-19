@@ -17,7 +17,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Domain
-        - WrappedDomain
+#        - WrappedDomain
         - User
       abis:
         - name: GlobalRegistrar
