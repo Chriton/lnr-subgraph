@@ -2,10 +2,10 @@
 
 # How to deploy a subgraph
 
-- Create an account at [thegraph](https://thegraph.com/) 
+- Create an account at [thegraph](https://thegraph.com/)
 - From the Subgraph Studio(not free) or Hosted Service (free) section create a subgraph
 - Follow the instructions on the Subgraph Studio/Hosted Service section how to build it.
-Usually the instructions involve typing the following commands in your terminal:
+  Usually the instructions involve typing the following commands in your terminal:
 
 ```shell
 # INSTALL GRAPH CLI USING NPM
@@ -27,8 +27,8 @@ cd {subgraph_folder}
 graph codegen && graph build
 
 # DEPLOY SUBGRAPH TO STUDIO
-graph deploy --product subgraph-studio {subgraph_name}
+graph deploy --studio {subgraph_name}
 
 # DEPLOY SUBGRAPH TO HOSTED
-graph deploy --product hosted-service {your_github_account}/{subgraph_name}
+graph deploy --hosted {your_github_account}/{subgraph_name}
 ```
