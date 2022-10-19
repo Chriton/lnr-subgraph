@@ -8,6 +8,14 @@ import {Domain, User} from "../generated/schema"
 
 // ---------------- Event handlers ----------------
 
+/**
+ * This event gets triggered for ALL the actions we do in the original Linagee contract.
+ *
+ * When this event gets triggered the action had already happened (reserve, transfer, etc.)
+ * so we might as well read the owner, address, content, etc. from the contract itself who
+ * is the ultimate provider for the data we are interested in.
+ * Disadvantage: the subgraph will index more slowly
+ */
 export function handleChanged(event: ChangedEvent): void {
 
     // Quick and dirty. I know ... ngmi
