@@ -2,6 +2,9 @@
   "mainnet": {
     "GlobalRegistrar": {
       "address": "0x5564886ca2c518d1964e5fcea4f423b41db9f561"
+    },
+    "LinageeWrapper": {
+      "address": "0x2cc8342d7c8bff5a213eb2cde39de9a59b3461a7"
     }
   }
 }
