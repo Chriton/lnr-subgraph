@@ -1,5 +1,5 @@
 specVersion: 0.0.4
-description: linagee subgraph
+description: Linagee subgraph
 schema:
   file: ./schema.graphql
 dataSources:
@@ -17,7 +17,6 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - Domain
-#        - WrappedDomain
         - User
       abis:
         - name: GlobalRegistrar
@@ -26,9 +25,28 @@ dataSources:
         - event: Changed(indexed bytes32)
           handler: handleChanged
           receipt: true
-#        - event: PrimaryChanged(indexed bytes32,indexed address)
-#          handler: handlePrimaryChanged
-#      callHandlers:
-#        - function: reserve(bytes32)
-#          handler: handleReserve
       file: ./src/mapping.ts
+  - kind: ethereum/contract
+    name: LinageeWrapped
+    network: mainnet
+    source:
+      address: '0x2cc8342d7c8bff5a213eb2cde39de9a59b3461a7'
+      abi: LinageeWrapper
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - WrappedDomain
+      abis:
+        - name: LinageeWrapper
+          file: ./abis/LinageeWrapper.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleTransfer
+        - event: Unwrapped(indexed uint256,indexed address,bytes32)
+          handler: handleUnwrapped
+        - event: Wrapped(indexed uint256,indexed address,bytes32)
+          handler: handleWrapped
+      file: ./src/mapping.ts
+

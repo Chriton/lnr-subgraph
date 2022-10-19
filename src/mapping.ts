@@ -2,7 +2,7 @@ import {Bytes, log} from "@graphprotocol/graph-ts"
 import {
     GlobalRegistrar as LNRContract,
     Changed as ChangedEvent,
-    PrimaryChanged as PrimaryChangedEvent,
+
 } from "../generated/GlobalRegistrar/GlobalRegistrar"
 import {Domain, User} from "../generated/schema"
 
@@ -124,8 +124,6 @@ export function handleChanged(event: ChangedEvent): void {
     // }
 
 }
-
-// export function handlePrimaryChanged(event: PrimaryChanged): void {}
 
 // ---------------- Function call handlers ----------------
 
