@@ -15,34 +15,33 @@ import {Domain, User} from "../generated/schema"
  * so we might as well read the owner, address, content, etc. from the contract itself who
  * is the ultimate provider for the data we are interested in.
  * Disadvantage: the subgraph will index more slowly
+ *
+ * We could use callHandlers (eg. reserve(bytes32)) instead of eventHandlers,
+ * but then we don't know when the function failed. On the other hand the
+ * Changed event only get triggered when the function has succeeded.
  */
 export function handleChanged(event: ChangedEvent): void {
 
     // Quick and dirty. I know ... ngmi
     let lnrContract = LNRContract.bind(event.address)
-
     let domainEntity = loadDomainEntity(event)
     let domain = event.params.name
 
-    // ----------------------- Read the method used by its ID ---------------------------------
-    // Reading the methodID that was used
-    // We could use callHandlers (eg. reserve(bytes32)) instead of eventHandlers
-    // but then how do we know when the function failed?
+    // ----------------------- Reading the methodID that was used ---------------------------------
 
     let methodID = event.transaction.input.toHexString().substring(0, 10);
 
     if (isReserveMethod(methodID)) {
         let domainOwner = lnrContract.owner(domain)
+
         domainEntity.owner = domainOwner.toHexString()
         domainEntity.domainBytecode = domain
-        // Generates warnings:
-        // Bytes contain invalid UTF8. This may be caused by attempting
-        // to convert a value such as an address that cannot be parsed
-        // to a unicode string. You may want to use 'toHexString()' instead.
+        // Generates subgraph warning: Bytes contain invalid UTF8...You may want to use 'toHexString()' instead
         domainEntity.domainUtf8 = domain.toString()
+
         domainEntity.blockNumber = event.block.number
         domainEntity.reserveDate = event.block.timestamp
-        domainEntity.reservedBy = event.address
+
         domainEntity.save()
 
         loadUserEntity(domainOwner)
@@ -50,42 +49,37 @@ export function handleChanged(event: ChangedEvent): void {
 
     if (isTransferMethod(methodID)) {
         let domainOwner = lnrContract.owner(domain)
+
         domainEntity.owner = domainOwner.toHexString()
         domainEntity.domainBytecode = domain
-        // Generates warnings:
-        // Bytes contain invalid UTF8. This may be caused by attempting
-        // to convert a value such as an address that cannot be parsed
-        // to a unicode string. You may want to use 'toHexString()' instead.
+        // Generates subgraph warning: Bytes contain invalid UTF8...You may want to use 'toHexString()' instead
         domainEntity.domainUtf8 = domain.toString()
+
         domainEntity.blockNumber = event.block.number
         domainEntity.reserveDate = event.block.timestamp
-        domainEntity.reservedBy = event.address
+
         domainEntity.save()
 
         loadUserEntity(domainOwner)
     }
 
     if (isSetSubRegistrar(methodID)) {
-        let subRegistrar = lnrContract.subRegistrar(domain)
-        domainEntity.subRegistrar = subRegistrar
+        domainEntity.subRegistrar = lnrContract.subRegistrar(domain)
         domainEntity.save()
     }
 
     if (isSetAddress(methodID)) {
-        let primary = lnrContract.addr(domain)
-        domainEntity.primary = primary
+        domainEntity.primary =  lnrContract.addr(domain)
         domainEntity.save()
     }
 
     if (isSetContentMethod(methodID)) {
-        let content = lnrContract.content(domain)
-        domainEntity.content = content
+        domainEntity.content = lnrContract.content(domain)
         domainEntity.save()
     }
 
     if (isDisownMethod(methodID)) {
-        let primary = lnrContract.addr(domain)
-        domainEntity.primary = primary
+        domainEntity.primary = lnrContract.addr(domain)
 
         let domainOwner = lnrContract.owner(domain)
         domainEntity.owner = domainOwner.toHexString()
