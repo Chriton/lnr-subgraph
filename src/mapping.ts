@@ -6,7 +6,7 @@ import {
 } from "../generated/GlobalRegistrar/GlobalRegistrar"
 import {Domain, User} from "../generated/schema"
 
-// ---------------- Event handlers ----------------
+// -------------------------------- Start Event handlers --------------------------------
 
 /**
  * This event gets triggered for ALL the actions we do in the original Linagee contract.
@@ -27,8 +27,7 @@ export function handleChanged(event: ChangedEvent): void {
     let domainEntity = loadDomainEntity(event)
     let domain = event.params.name
 
-    // ----------------------- Reading the methodID that was used ---------------------------------
-
+    // Reading the methodID that was used
     let methodID = event.transaction.input.toHexString().substring(0, 10);
 
     if (isReserveMethod(methodID)) {
@@ -89,7 +88,7 @@ export function handleChanged(event: ChangedEvent): void {
     }
 
 
-    // ----------------------- Tests / Investigations ---------------------------------
+    // -------------------------------- Tests / Investigations --------------------------
 
     // https://www.edureka.co/community/22203/ethereum-call-contract-method-emits-event-another-contract
     // get methodID and address that sent the transaction
@@ -125,7 +124,10 @@ export function handleChanged(event: ChangedEvent): void {
 
 }
 
-// ---------------- Function call handlers ----------------
+// -------------------------------- End Event handlers ----------------------------------
+
+
+// -------------------------------- Start Function call handlers ------------------------
 
 // export function handleReserve(event: ChangedEvent): void {}
 
@@ -139,8 +141,10 @@ export function handleChanged(event: ChangedEvent): void {
 //
 // export function handleSetContent(event: ChangedEvent): void {}
 
+// -------------------------------- End Function call handlers --------------------------
 
-// ---------------- Helpers ----------------
+
+// -------------------------------- Start Helpers ---------------------------------------
 
 export function loadDomainEntity(event: ChangedEvent): Domain {
 
@@ -183,13 +187,17 @@ export function isReserveMethod(methodID: string): boolean {
 /**
  * Checks if the methodID provided is the 'transfer' method or one that uses 'transfer' method
  *
- * 0x79ce9fac = 'transfer' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
- * 0x71ec7785 = 'bulkReserveAndMintErc721' from linagee.tools contract (0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff)
- * 0xf3461a7b = 'reserveAndMintErc721' from linagee.tools contract (0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff)
- * 0xa4c6bc7b = 'bulkMintToERC721' from linagee.tools contract (0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff)
+ * 0x79ce9fac = 'transfer' method from the original linagee contract
+ * 0x71ec7785 = 'bulkReserveAndMintErc721' from linagee.tools contract
+ * 0xf3461a7b = 'reserveAndMintErc721' from linagee.tools contract
+ * 0xa4c6bc7b = 'bulkMintToERC721' from linagee.tools contract
+ *
+ * linagee contract = 0x5564886ca2c518d1964e5fcea4f423b41db9f561
+ * linagee.tools contract = 0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff
  *
  * linagee.tools contract methodIDs are the same for 0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff (new one) and
  * 0x72c30b3e3b1526a24b757f5dc1dc1f4a6a8d4edb (old one)
+ *
  * @param methodID the methodID
  */
 export function isTransferMethod(methodID: string): boolean {
@@ -205,7 +213,9 @@ export function isTransferMethod(methodID: string): boolean {
 /**
  * Checks if the methodID provided is the 'setSubRegistrar' method
  *
- * 0x89a69c0e = 'setSubRegistrar' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
+ * 0x89a69c0e = 'setSubRegistrar' method from the original linagee contract
+ *
+ * linagee contract = 0x5564886ca2c518d1964e5fcea4f423b41db9f561
  *
  * @param methodID
  */
@@ -217,7 +227,9 @@ export function isSetSubRegistrar(methodID: string): boolean {
 /**
  * Checks if the methodID provided is the 'setAddress' method
  *
- * 0xbe99a980 = 'setAddress' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
+ * 0xbe99a980 = 'setAddress' method from the original linagee contract
+ *
+ * linagee contract = 0x5564886ca2c518d1964e5fcea4f423b41db9f561
  *
  * @param methodID
  */
@@ -229,7 +241,9 @@ export function isSetAddress(methodID: string): boolean {
 /**
  * Checks if the methodID provided is the 'setContent' method
  *
- * 0xc3d014d6 = 'setContent' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
+ * 0xc3d014d6 = 'setContent' method from the original linagee contract
+ *
+ * linagee contract = 0x5564886ca2c518d1964e5fcea4f423b41db9f561
  *
  * @param methodID
  */
@@ -241,7 +255,9 @@ export function isSetContentMethod(methodID: string): boolean {
 /**
  * Checks if the methodID provided is the 'disown' method
  *
- * 0xd93e7573 = 'disown' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
+ * 0xd93e7573 = 'disown' method from the original linagee contract
+ *
+ * linagee contract = 0x5564886ca2c518d1964e5fcea4f423b41db9f561
  *
  * @param methodID
  */
@@ -249,3 +265,5 @@ export function isDisownMethod(methodID: string): boolean {
     // log.info("disown method detected: {}", [event.transaction.input.toHexString()])
     return (methodID == '0xd93e7573')
 }
+
+// -------------------------------- End Helpers -----------------------------------------
