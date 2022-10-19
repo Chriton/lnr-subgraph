@@ -17,14 +17,14 @@ type Domain @entity {
   reservedBy: Bytes!
 }
 
-type WrappedDomain @entity {
-  id: ID!
-  "value is a User entity"
-  owner: User!
-}
+#type WrappedDomain @entity {
+#  id: ID!
+#  "value is a User entity"
+#  owner: User!
+#}
 
 type User @entity {
   id: ID!
   tokens: [Domain!]! @derivedFrom(field: "owner")
-  wrappedTokens: [WrappedDomain!]! @derivedFrom(field: "owner")
+#  wrappedTokens: [WrappedDomain!]! @derivedFrom(field: "owner")
 }

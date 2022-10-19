@@ -10,9 +10,10 @@ dataSources:
       address: "0x5564886ca2c518d1964e5fcea4f423b41db9f561"
       abi: GlobalRegistrar
       startBlock: 51807
+#      startBlock: 15766300
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.6
+      apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
         - Domain
@@ -24,9 +25,10 @@ dataSources:
       eventHandlers:
         - event: Changed(indexed bytes32)
           handler: handleChanged
+          receipt: true
 #        - event: PrimaryChanged(indexed bytes32,indexed address)
 #          handler: handlePrimaryChanged
 #      callHandlers:
 #        - function: reserve(bytes32)
 #          handler: handleReserve
-      file: ./src/global-registrar.ts
+      file: ./src/mapping.ts
