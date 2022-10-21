@@ -9,8 +9,7 @@ dataSources:
     source:
       address: "0x5564886ca2c518d1964e5fcea4f423b41db9f561"
       abi: GlobalRegistrar
-      startBlock: 51807
-#      startBlock: 15766300
+      startBlock: 51807     # contract creation
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -23,6 +22,7 @@ dataSources:
           file: ./abis/GlobalRegistrar.json
       eventHandlers:
         - event: Changed(indexed bytes32)
+          # topic0: '0x644843f31example'
           handler: handleChanged
           receipt: true
       file: ./src/mapping.ts
@@ -32,6 +32,7 @@ dataSources:
     source:
       address: '0x2cc8342d7c8bff5a213eb2cde39de9a59b3461a7'
       abi: LinageeWrapper
+      startBlock: 15663114    # contract creation
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -44,9 +45,8 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleTransfer
-        - event: Unwrapped(indexed uint256,indexed address,bytes32)
-          handler: handleUnwrapped
         - event: Wrapped(indexed uint256,indexed address,bytes32)
           handler: handleWrapped
+        - event: Unwrapped(indexed uint256,indexed address,bytes32)
+          handler: handleUnwrapped
       file: ./src/mapping.ts
-

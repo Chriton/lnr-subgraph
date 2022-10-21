@@ -1,25 +1,29 @@
 type Domain @entity {
-  id: ID!
-  owner: User!            # value is a User entity
-  domainBytecode: Bytes   # value is bytes32
-  domainUtf8: String      # value is String. Not safe, just for testing
+  id: ID!                     # A unique id constructed like "id-{bytecode}"
+  owner: User!                # A User or the wrapper contract if it's wrapped
+  domainBytecode: Bytes       # The bytes32 value of the name. Best way to do forensic on it
+  domainUtf8: String          # The bytes32 name converted into string. Be aware it's less safe than the bytecode
 
-  primary: Bytes          # value is an eth address
-  subRegistrar: Bytes     # value is an eth address
-  content: Bytes          # value is bytes32
+  primary: Bytes              # Value is an eth address if the user has set a primary eth address
+  subRegistrar: Bytes         # Value is an eth address
+  content: Bytes              # Value is bytes32
 
-  blockNumber: BigInt!    # the block number when the action happened
-  reserveDate: BigInt!    # value is a timestamp
+  blockNumber: BigInt         # The block number when the action happened
+  reserveDate: BigInt         # Value is a timestamp
+
+  wrapped: Boolean            # True if the token has been wrapped
+  wrapperOwner: User          # The User that wrapped the domain
 }
 
-#type WrappedDomain @entity {
-#  id: ID!
-#  "value is a User entity"
-#  owner: User!
-#}
+type WrappedDomain @entity {
+  id: ID!                     # The ERC-721 tokenId
+  owner: User!                # The user that wrapped the domain
+  domain: Domain              # The original linagee token
+}
 
 type User @entity {
-  id: ID!
+  id: ID!                     # An eth address. Could be a normal user, the wrapper contract, etc. Change it to Address?
+  address: Bytes!             # Same value as ID but using Address type for better search
   tokens: [Domain!]! @derivedFrom(field: "owner")
-#  wrappedTokens: [WrappedDomain!]! @derivedFrom(field: "owner")
+  wrappedTokens: [WrappedDomain!]! @derivedFrom(field: "owner")
 }
