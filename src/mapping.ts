@@ -1,12 +1,15 @@
-import {Bytes, log} from "@graphprotocol/graph-ts"
-import {
-    GlobalRegistrar as LNRContract,
-    Changed as ChangedEvent,
-    PrimaryChanged as PrimaryChangedEvent,
-} from "../generated/GlobalRegistrar/GlobalRegistrar"
-import {Domain, User} from "../generated/schema"
+import {Bytes, Address, ethereum, store, log, json, TypedMap} from "@graphprotocol/graph-ts"
+import {GlobalRegistrar as LNRContract, Changed} from "../generated/GlobalRegistrar/GlobalRegistrar"
+import {Transfer, Wrapped, Unwrapped, LinageeWrapper} from "../generated/LinageeWrapped/LinageeWrapper";
 
-// ---------------- Event handlers ----------------
+import {
+    isReserveMethod, isTransferMethod, isSetSubRegistrar,
+    isSetAddress, isSetContentMethod, isDisownMethod,
+    loadDomainEntity, loadWrappedDomainEntity, loadUserEntity,
+    NULL_ADDRESS
+} from './helpers'
+
+// -------------------------------- Start Event handlers --------------------------------
 
 /**
  * This event gets triggered for ALL the actions we do in the original Linagee contract.
@@ -15,91 +18,92 @@ import {Domain, User} from "../generated/schema"
  * so we might as well read the owner, address, content, etc. from the contract itself who
  * is the ultimate provider for the data we are interested in.
  * Disadvantage: the subgraph will index more slowly
+ *
+ * We could use callHandlers (eg. reserve(bytes32)) instead of eventHandlers,
+ * but then we don't know when the function failed. On the other hand the
+ * Changed event only get triggered when the function has succeeded.
  */
-export function handleChanged(event: ChangedEvent): void {
+export function handleChanged(event: Changed): void {
 
     // Quick and dirty. I know ... ngmi
     let lnrContract = LNRContract.bind(event.address)
-
-    let domainEntity = loadDomainEntity(event)
+    let domainEntity = loadDomainEntity(event.params.name.toHexString())
     let domain = event.params.name
 
-    // ----------------------- Read the method used by its ID ---------------------------------
     // Reading the methodID that was used
-    // We could use callHandlers (eg. reserve(bytes32)) instead of eventHandlers
-    // but then how do we know when the function failed?
-
     let methodID = event.transaction.input.toHexString().substring(0, 10);
 
     if (isReserveMethod(methodID)) {
         let domainOwner = lnrContract.owner(domain)
+        loadUserEntity(domainOwner)
+
         domainEntity.owner = domainOwner.toHexString()
         domainEntity.domainBytecode = domain
-        // Generates warnings:
-        // Bytes contain invalid UTF8. This may be caused by attempting
-        // to convert a value such as an address that cannot be parsed
-        // to a unicode string. You may want to use 'toHexString()' instead.
+        // Generates subgraph warning: Bytes contain invalid UTF8...You may want to use 'toHexString()' instead
         domainEntity.domainUtf8 = domain.toString()
+
         domainEntity.blockNumber = event.block.number
         domainEntity.reserveDate = event.block.timestamp
-        domainEntity.reservedBy = event.address
-        domainEntity.save()
 
-        loadUserEntity(domainOwner)
+        domainEntity.wrapped = false;
+        domainEntity.wrapperOwner = NULL_ADDRESS;
+
+        domainEntity.save()
     }
 
     if (isTransferMethod(methodID)) {
         let domainOwner = lnrContract.owner(domain)
+        loadUserEntity(domainOwner)
+
         domainEntity.owner = domainOwner.toHexString()
         domainEntity.domainBytecode = domain
-        // Generates warnings:
-        // Bytes contain invalid UTF8. This may be caused by attempting
-        // to convert a value such as an address that cannot be parsed
-        // to a unicode string. You may want to use 'toHexString()' instead.
+        // Generates subgraph warning: Bytes contain invalid UTF8...You may want to use 'toHexString()' instead
         domainEntity.domainUtf8 = domain.toString()
+
         domainEntity.blockNumber = event.block.number
         domainEntity.reserveDate = event.block.timestamp
-        domainEntity.reservedBy = event.address
-        domainEntity.save()
 
-        loadUserEntity(domainOwner)
+        domainEntity.save()
     }
 
     if (isSetSubRegistrar(methodID)) {
-        let subRegistrar = lnrContract.subRegistrar(domain)
-        domainEntity.subRegistrar = subRegistrar
+        domainEntity.subRegistrar = lnrContract.subRegistrar(domain)
         domainEntity.save()
     }
 
     if (isSetAddress(methodID)) {
-        let primary = lnrContract.addr(domain)
-        domainEntity.primary = primary
+        domainEntity.primary = lnrContract.addr(domain)
         domainEntity.save()
     }
 
     if (isSetContentMethod(methodID)) {
-        let content = lnrContract.content(domain)
-        domainEntity.content = content
+        domainEntity.content = lnrContract.content(domain)
         domainEntity.save()
     }
 
     if (isDisownMethod(methodID)) {
-        let primary = lnrContract.addr(domain)
-        domainEntity.primary = primary
-
+        domainEntity.primary = lnrContract.addr(domain)
         let domainOwner = lnrContract.owner(domain)
-        domainEntity.owner = domainOwner.toHexString()
-        domainEntity.save()
 
         loadUserEntity(domainOwner)
+
+        domainEntity.owner = domainOwner.toHexString()
+        domainEntity.subRegistrar = lnrContract.subRegistrar(domain)
+        domainEntity.wrapped = false;
+
+        domainEntity.save()
     }
 
 
-    // ----------------------- Tests / Investigations ---------------------------------
+    // -------------------------------- Tests / Investigations --------------------------
 
     // https://www.edureka.co/community/22203/ethereum-call-contract-method-emits-event-another-contract
     // get methodID and address that sent the transaction
     // const receipt = event.receipt
+
+    // ethereum.TransactionReceipt.name
+    // ethereum.Transaction.name
+    // ethereum.Log.name
 
     // if (receipt) {
     //     const data = receipt.logs[index].data;
@@ -116,12 +120,12 @@ export function handleChanged(event: ChangedEvent): void {
     //     const numberOfLogs = receipt.logs.length
     //     const blockNumber = receipt.blockNumber
     //
-    //     log.error("numberOfLogs={}", [numberOfLogs.toString()])
+    //     log.debug("numberOfLogs={}", [numberOfLogs.toString()])
     //
     //     for (let logIndex = 0; logIndex < numberOfLogs; logIndex++) {
     //         const numberOfTopics = receipt.logs[logIndex].topics.length
     //         for (let topicIndex = 0; topicIndex < numberOfTopics; topicIndex++) {
-    //             log.error("Log-{} of {} Topic-{} of {} Data = '{}'",
+    //             log.debug("Log-{} of {} Topic-{} of {} Data = '{}'",
     //                 [logIndex.toString(), numberOfLogs.toString(),
     //                     topicIndex.toString(), numberOfTopics.toString(),
     //                     receipt.logs[logIndex].topics[topicIndex].toHexString()])
@@ -131,129 +135,101 @@ export function handleChanged(event: ChangedEvent): void {
 
 }
 
-// export function handlePrimaryChanged(event: PrimaryChanged): void {}
+/**
+ * The original linagee token will now be owned by the wrapper contract
+ * The new wrapped token will be owned by the user
+ * This event happens on the wrapper contract
+ * @param event
+ */
+export function handleWrapped(event: Wrapped): void {
+    // pairId, owner, namer
 
-// ---------------- Function call handlers ----------------
+    loadUserEntity(event.params.owner)
 
-// export function handleReserve(event: ChangedEvent): void {}
+    // Set the owner, wrapped and wrapperOwner (on the Domain entity)
+    let domainEntity = loadDomainEntity(event.params.namer.toHexString())
+    // domainEntity.owner = event.params.owner.toHexString()
+    // should be the wrapper address - check it!
+    domainEntity.owner = event.address.toHexString()
 
-// export function handleTransfer(event: ChangedEvent): void {}
-//
-// export function handleDisown(event: ChangedEvent): void {}
-//
-// export function handleSetAddress(event: ChangedEvent): void {}
-//
-// export function handleSetSubRegistrar(event: ChangedEvent): void {}
-//
-// export function handleSetContent(event: ChangedEvent): void {}
+    // should we create a new blockNumberWrapped for this?
+    domainEntity.blockNumber = event.block.number
+    // also for this?
+    domainEntity.reserveDate = event.block.timestamp
 
+    domainEntity.wrapped = true
+    domainEntity.wrapperOwner = event.params.owner.toHexString()
+    domainEntity.save();
 
-// ---------------- Helpers ----------------
-
-export function loadDomainEntity(event: ChangedEvent): Domain {
-
-    let entity = Domain.load("id-".concat(event.params.name.toHexString()))
-
-    if (!entity) {
-        entity = new Domain("id-".concat(event.params.name.toHexString()))
-    }
-    return entity
-}
-
-export function loadUserEntity(address: Bytes): User {
-
-    let entity = User.load(address.toHexString())
-
-    if (!entity) {
-        entity = new User(address.toHexString())
-        entity.save()
-    }
-
-    return entity
+    // Set the owner and domain (on the WrappedDomain entity)
+    let wrappedDomainEntity = loadWrappedDomainEntity(event.params.pairId.toString())
+    wrappedDomainEntity.owner = event.params.owner.toHexString()
+    wrappedDomainEntity.domain = domainEntity.id
+    wrappedDomainEntity.save()
 }
 
 /**
- * Checks if the methodID provided is the 'reserve' method or one that uses 'reserve' method
+ * Update the data in the Domain and WrappedDomain entities regarding ownership
+ * This event happens on the wrapper contract
  *
- * 0x432ced04 = 'reserve' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
- * 0x62a52fff = 'bulkReserve' from linagee.tools contract (0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff)
- *
- * linagee.tools contract methodIDs are the same for 0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff (new one) and
- * 0x72c30b3e3b1526a24b757f5dc1dc1f4a6a8d4edb (old one)
- *
- * @param methodID the methodID
+ * @param event
  */
-export function isReserveMethod(methodID: string): boolean {
-    // log.info("reserve method detected: {}", [event.transaction.input.toHexString()])
-    return (methodID == '0x432ced04' || methodID == '0x62a52fff');
+export function handleTransfer(event: Transfer): void {
+    // from, to, tokenId
+
+    // use try catch? so that the subgraph continues and not crash the entire thing when something happens
+
+    // Should be before or after the Domain entity??
+    loadUserEntity(event.params.to)
+    loadUserEntity(event.params.from)
+
+    // Set the owner and wrapperOwner (on the Domain entity)
+    let wrapperContract = LinageeWrapper.bind(event.address)
+    let domain = wrapperContract.idToName(event.params.tokenId)
+    let domainEntity = loadDomainEntity(domain.toHexString())
+
+    domainEntity.owner = event.params.to.toHexString()
+    domainEntity.wrapperOwner = event.params.to.toHexString()
+
+    // if (!domainEntity.blockNumber) {
+    //     domainEntity.blockNumber = event.block.number
+    // }
+    // if (!domainEntity.reserveDate) {
+    //     domainEntity.reserveDate = event.block.timestamp
+    // }
+
+    domainEntity.save()
+
+    // Set the owner and domain (on the WrappedDomain entity)
+    let wrappedDomainEntity = loadWrappedDomainEntity(event.params.tokenId.toString())
+    wrappedDomainEntity.owner = event.params.to.toHexString()
+    wrappedDomainEntity.domain = domainEntity.id
+    wrappedDomainEntity.save();
 }
 
 /**
- * Checks if the methodID provided is the 'transfer' method or one that uses 'transfer' method
- *
- * 0x79ce9fac = 'transfer' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
- * 0x71ec7785 = 'bulkReserveAndMintErc721' from linagee.tools contract (0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff)
- * 0xf3461a7b = 'reserveAndMintErc721' from linagee.tools contract (0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff)
- * 0xa4c6bc7b = 'bulkMintToERC721' from linagee.tools contract (0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff)
- *
- * linagee.tools contract methodIDs are the same for 0x68fc0c4eb5fee9f240238d925bbc3ffe624a68ff (new one) and
- * 0x72c30b3e3b1526a24b757f5dc1dc1f4a6a8d4edb (old one)
- * @param methodID the methodID
+ * The original linagee token will now be owned by the user again (wrapper contract had it before)
+ * The wrapped token will be burned and so the owner will be the null address
+ * This event happens on the wrapper contract
+ * @param event
  */
-export function isTransferMethod(methodID: string): boolean {
-    // log.info("transfer method detected: {}", [event.transaction.input.toHexString()])
-    return (
-        methodID == '0x79ce9fac' ||
-        methodID == '0x71ec7785' ||
-        methodID == '0xf3461a7b' ||
-        methodID == '0xa4c6bc7b'
-    )
+export function handleUnwrapped(event: Unwrapped): void {
+    // pairId, owner, namer
+
+    // Should be before or after the Domain entity??
+    loadUserEntity(event.params.owner)
+
+    // Set the new owner, wrapped and wrapperOwner (on the Domain entity)
+    let domainEntity = loadDomainEntity(event.params.namer.toHexString())
+    domainEntity.owner = event.params.owner.toHexString()
+    domainEntity.wrapped = false
+    domainEntity.wrapperOwner = NULL_ADDRESS
+    domainEntity.save()
+
+    // Set the owner to the null address (on the WrappedDomain entity)
+    let wrappedDomainEntity = loadWrappedDomainEntity(event.params.pairId.toString())
+    wrappedDomainEntity.owner =  NULL_ADDRESS
+    wrappedDomainEntity.save();
 }
 
-/**
- * Checks if the methodID provided is the 'setSubRegistrar' method
- *
- * 0x89a69c0e = 'setSubRegistrar' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
- *
- * @param methodID
- */
-export function isSetSubRegistrar(methodID: string): boolean {
-    // log.info("setSubRegistrar method detected: {}", [event.transaction.input.toHexString()])
-    return (methodID == '0x89a69c0e')
-}
-
-/**
- * Checks if the methodID provided is the 'setAddress' method
- *
- * 0xbe99a980 = 'setAddress' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
- *
- * @param methodID
- */
-export function isSetAddress(methodID: string): boolean {
-    // log.info("setAddress method detected: {}", [event.transaction.input.toHexString()])
-    return (methodID == '0xbe99a980')
-}
-
-/**
- * Checks if the methodID provided is the 'setContent' method
- *
- * 0xc3d014d6 = 'setContent' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
- *
- * @param methodID
- */
-export function isSetContentMethod(methodID: string): boolean {
-    // log.info("setContent method detected: {}", [event.transaction.input.toHexString()])
-    return (methodID == '0xc3d014d6')
-}
-
-/**
- * Checks if the methodID provided is the 'disown' method
- *
- * 0xd93e7573 = 'disown' method from the original linagee contract (0x5564886ca2c518d1964e5fcea4f423b41db9f561)
- *
- * @param methodID
- */
-export function isDisownMethod(methodID: string): boolean {
-    // log.info("disown method detected: {}", [event.transaction.input.toHexString()])
-    return (methodID == '0xd93e7573')
-}
+// -------------------------------- End Event handlers ----------------------------------
