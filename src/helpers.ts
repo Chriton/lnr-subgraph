@@ -1,5 +1,5 @@
 import {TypedMap} from "@graphprotocol/graph-ts/index";
-import {Domain, User, WrappedDomain} from "../generated/schema";
+import {Domain, User, WrappedDomain, Stats} from "../generated/schema";
 import {Bytes, Address} from "@graphprotocol/graph-ts";
 
 export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -107,7 +107,30 @@ export function loadDomainEntity(name: string): Domain {
 
     if (!entity) {
         entity = new Domain("id-".concat(name))
+
+        {/** ------------ Update the Stats entity ------------ **/}
+        let stats = loadStatsEntity()
+        stats.totalRegisters = stats.totalRegisters + 1;
+        stats.save();
+        {/** ------------ Update the Stats entity ------------ **/}
+
+        entity.registerIndex = stats.totalRegisters;
     }
+
+    return entity
+}
+
+export function loadStatsEntity(): Stats {
+
+    let entity = Stats.load('1');
+
+    if (!entity) {
+        entity = new Stats('1');
+        entity.totalRegisters = 0;
+        entity.totalWraps = 0;
+        entity.save();
+    }
+
     return entity
 }
 
@@ -118,6 +141,7 @@ export function loadWrappedDomainEntity(tokenId: string): WrappedDomain {
     if (!entity) {
         entity = new WrappedDomain(tokenId)
     }
+
     return entity
 }
 

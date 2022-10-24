@@ -1,6 +1,7 @@
 type Domain @entity {
   id: ID!                     # A unique id constructed like "id-{bytecode}"
-  owner: User!                # A User or the wrapper contract if it's wrapped
+  registerIndex: Int          # A register index on the minted domain
+  owner: User!                # A User or the wrapper contract if it's wrapped.
   domainBytecode: Bytes       # The bytes32 value of the name. Best way to do forensic on it
   domainUtf8: String          # The bytes32 name converted into string. Be aware it's less safe than the bytecode
 
@@ -12,7 +13,7 @@ type Domain @entity {
   reserveDate: BigInt         # Value is a timestamp
 
   wrapped: Boolean            # True if the token has been wrapped
-  wrapperOwner: User          # The User that wrapped the domain
+  wrappedDomainOwner: User    # The owner of the wrapped domain
 }
 
 type WrappedDomain @entity {
@@ -26,4 +27,10 @@ type User @entity {
   address: Bytes!             # Same value as ID but using Address type for better search
   tokens: [Domain!]! @derivedFrom(field: "owner")
   wrappedTokens: [WrappedDomain!]! @derivedFrom(field: "owner")
+}
+
+type Stats @entity {
+  id: ID!
+  totalRegisters: Int         # When a new domain entity is created we increment this value
+  totalWraps: Int             # When a token is wrapped/unwrapped we increment/decrement this value
 }

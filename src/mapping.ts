@@ -6,7 +6,7 @@ import {
     isReserveMethod, isTransferMethod, isSetSubRegistrar,
     isSetAddress, isSetContentMethod, isDisownMethod,
     loadDomainEntity, loadWrappedDomainEntity, loadUserEntity,
-    NULL_ADDRESS
+    NULL_ADDRESS, loadStatsEntity
 } from './helpers'
 
 // -------------------------------- Start Event handlers --------------------------------
@@ -46,12 +46,12 @@ export function handleChanged(event: Changed): void {
         domainEntity.reserveDate = event.block.timestamp
 
         domainEntity.wrapped = false;
-        domainEntity.wrapperOwner = NULL_ADDRESS;
+        domainEntity.wrappedDomainOwner = NULL_ADDRESS;
 
         domainEntity.save()
     }
 
-    if (isTransferMethod(methodID)) {
+    else if (isTransferMethod(methodID)) {
         let domainOwner = lnrContract.owner(domain)
         loadUserEntity(domainOwner)
 
@@ -66,22 +66,22 @@ export function handleChanged(event: Changed): void {
         domainEntity.save()
     }
 
-    if (isSetSubRegistrar(methodID)) {
+    else if (isSetSubRegistrar(methodID)) {
         domainEntity.subRegistrar = lnrContract.subRegistrar(domain)
         domainEntity.save()
     }
 
-    if (isSetAddress(methodID)) {
+    else if (isSetAddress(methodID)) {
         domainEntity.primary = lnrContract.addr(domain)
         domainEntity.save()
     }
 
-    if (isSetContentMethod(methodID)) {
+    else if (isSetContentMethod(methodID)) {
         domainEntity.content = lnrContract.content(domain)
         domainEntity.save()
     }
 
-    if (isDisownMethod(methodID)) {
+    else if (isDisownMethod(methodID)) {
         domainEntity.primary = lnrContract.addr(domain)
         let domainOwner = lnrContract.owner(domain)
 
@@ -90,6 +90,29 @@ export function handleChanged(event: Changed): void {
         domainEntity.owner = domainOwner.toHexString()
         domainEntity.subRegistrar = lnrContract.subRegistrar(domain)
         domainEntity.wrapped = false;
+
+        domainEntity.save()
+    } else {
+        log.debug("MethodId used: '{}' param.name = '{}' Domain = '{}' Transaction hash = '{}'",
+            [methodID,
+            event.params.name.toHexString(),
+            event.params.name.toString(),
+            event.transaction.hash.toHexString()
+            ])
+
+        let domainOwner = lnrContract.owner(domain)
+        loadUserEntity(domainOwner)
+
+        domainEntity.owner = domainOwner.toHexString()
+        domainEntity.domainBytecode = domain
+        // Generates subgraph warning: Bytes contain invalid UTF8...You may want to use 'toHexString()' instead
+        domainEntity.domainUtf8 = domain.toString()
+
+        domainEntity.blockNumber = event.block.number
+        domainEntity.reserveDate = event.block.timestamp
+
+        domainEntity.wrapped = false;
+        domainEntity.wrappedDomainOwner = NULL_ADDRESS;
 
         domainEntity.save()
     }
@@ -146,7 +169,7 @@ export function handleWrapped(event: Wrapped): void {
 
     loadUserEntity(event.params.owner)
 
-    // Set the owner, wrapped and wrapperOwner (on the Domain entity)
+    // Set the owner, wrapped and wrappedDomainOwner (on the Domain entity)
     let domainEntity = loadDomainEntity(event.params.namer.toHexString())
     // domainEntity.owner = event.params.owner.toHexString()
     // should be the wrapper address - check it!
@@ -158,7 +181,7 @@ export function handleWrapped(event: Wrapped): void {
     domainEntity.reserveDate = event.block.timestamp
 
     domainEntity.wrapped = true
-    domainEntity.wrapperOwner = event.params.owner.toHexString()
+    domainEntity.wrappedDomainOwner = event.params.owner.toHexString()
     domainEntity.save();
 
     // Set the owner and domain (on the WrappedDomain entity)
@@ -166,6 +189,11 @@ export function handleWrapped(event: Wrapped): void {
     wrappedDomainEntity.owner = event.params.owner.toHexString()
     wrappedDomainEntity.domain = domainEntity.id
     wrappedDomainEntity.save()
+
+    // Update the total wrapped tokens number
+    let stats = loadStatsEntity();
+    stats.totalWraps = stats.totalWraps + 1;
+    stats.save();
 }
 
 /**
@@ -183,13 +211,13 @@ export function handleTransfer(event: Transfer): void {
     loadUserEntity(event.params.to)
     loadUserEntity(event.params.from)
 
-    // Set the owner and wrapperOwner (on the Domain entity)
+    // Set the owner and wrappedDomainOwner (on the Domain entity)
     let wrapperContract = LinageeWrapper.bind(event.address)
     let domain = wrapperContract.idToName(event.params.tokenId)
     let domainEntity = loadDomainEntity(domain.toHexString())
 
     domainEntity.owner = event.params.to.toHexString()
-    domainEntity.wrapperOwner = event.params.to.toHexString()
+    domainEntity.wrappedDomainOwner = event.params.to.toHexString()
 
     // if (!domainEntity.blockNumber) {
     //     domainEntity.blockNumber = event.block.number
@@ -219,17 +247,22 @@ export function handleUnwrapped(event: Unwrapped): void {
     // Should be before or after the Domain entity??
     loadUserEntity(event.params.owner)
 
-    // Set the new owner, wrapped and wrapperOwner (on the Domain entity)
+    // Set the new owner, wrapped and wrappedDomainOwner (on the Domain entity)
     let domainEntity = loadDomainEntity(event.params.namer.toHexString())
     domainEntity.owner = event.params.owner.toHexString()
     domainEntity.wrapped = false
-    domainEntity.wrapperOwner = NULL_ADDRESS
+    domainEntity.wrappedDomainOwner = NULL_ADDRESS
     domainEntity.save()
 
     // Set the owner to the null address (on the WrappedDomain entity)
     let wrappedDomainEntity = loadWrappedDomainEntity(event.params.pairId.toString())
     wrappedDomainEntity.owner =  NULL_ADDRESS
     wrappedDomainEntity.save();
+
+    // Update the total wrapped tokens number
+    let stats = loadStatsEntity();
+    stats.totalWraps = stats.totalWraps - 1;
+    stats.save();
 }
 
 // -------------------------------- End Event handlers ----------------------------------
