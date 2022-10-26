@@ -9,7 +9,7 @@ import {
     NULL_ADDRESS, loadStatsEntity
 } from './helpers'
 
-// -------------------------------- Start Event handlers --------------------------------
+// -------------------------------- Start Event handlers for linagee  contract --------------------------------
 
 /**
  * This event gets triggered for ALL the actions we do in the original Linagee contract.
@@ -24,6 +24,7 @@ import {
  * Changed event only get triggered when the function has succeeded.
  */
 export function handleChanged(event: Changed): void {
+    // Params: name
 
     // Quick and dirty. I know ... ngmi
     let lnrContract = LNRContract.bind(event.address)
@@ -32,6 +33,20 @@ export function handleChanged(event: Changed): void {
 
     // Reading the methodID that was used
     let methodID = event.transaction.input.toHexString().substring(0, 10);
+
+    // if (domain.toHexString() == '0x0000000000000000000000000000000000000000000000000000000000000000') {
+    //
+    //     log.debug("WARNING !!! MethodId: '{}' param.name = '{}' Domain = '{}' Tr. hash = '{}' " +
+    //         "Event address '{}' Tr. from: '{}'",
+    //         [methodID,
+    //             event.params.name.toHexString(),
+    //             event.params.name.toString(),
+    //             event.transaction.hash.toHexString(),
+    //             event.address.toHexString(),
+    //             event.transaction.from.toHexString(),
+    //         ])
+    // }
+
 
     if (isReserveMethod(methodID)) {
         let domainOwner = lnrContract.owner(domain)
@@ -93,17 +108,19 @@ export function handleChanged(event: Changed): void {
 
         domainEntity.save()
     } else {
-        log.debug("MethodId used: '{}' param.name = '{}' Domain = '{}' Transaction hash = '{}'",
-            [methodID,
-            event.params.name.toHexString(),
-            event.params.name.toString(),
-            event.transaction.hash.toHexString()
-            ])
 
+        // TODO - remove line 112 and 115-117 and just leave let domainOwner = event.transaction.to;
         let domainOwner = lnrContract.owner(domain)
+        let toFromTransaction = event.transaction.to;
+
+        if (toFromTransaction && toFromTransaction !== event.address) {
+            domainOwner = toFromTransaction;
+        }
+
         loadUserEntity(domainOwner)
 
-        domainEntity.owner = domainOwner.toHexString()
+        domainEntity.owner = domainOwner.toHexString();
+
         domainEntity.domainBytecode = domain
         // Generates subgraph warning: Bytes contain invalid UTF8...You may want to use 'toHexString()' instead
         domainEntity.domainUtf8 = domain.toString()
@@ -156,8 +173,12 @@ export function handleChanged(event: Changed): void {
     //     }
     // }
 
+    // -------------------------------- Tests / Investigations --------------------------
 }
 
+// -------------------------------- End Event handlers for linagee  contract --------------------------------
+
+// -------------------------------- Start Event handlers for linagee  wrapper --------------------------------
 /**
  * The original linagee token will now be owned by the wrapper contract
  * The new wrapped token will be owned by the user
@@ -165,20 +186,18 @@ export function handleChanged(event: Changed): void {
  * @param event
  */
 export function handleWrapped(event: Wrapped): void {
-    // pairId, owner, namer
+    // Params: pairId, owner, namer
 
     loadUserEntity(event.params.owner)
 
     // Set the owner, wrapped and wrappedDomainOwner (on the Domain entity)
     let domainEntity = loadDomainEntity(event.params.namer.toHexString())
-    // domainEntity.owner = event.params.owner.toHexString()
-    // should be the wrapper address - check it!
     domainEntity.owner = event.address.toHexString()
 
     // should we create a new blockNumberWrapped for this?
-    domainEntity.blockNumber = event.block.number
+    // domainEntity.blockNumber = event.block.number
     // also for this?
-    domainEntity.reserveDate = event.block.timestamp
+    // domainEntity.reserveDate = event.block.timestamp
 
     domainEntity.wrapped = true
     domainEntity.wrappedDomainOwner = event.params.owner.toHexString()
@@ -203,28 +222,19 @@ export function handleWrapped(event: Wrapped): void {
  * @param event
  */
 export function handleTransfer(event: Transfer): void {
-    // from, to, tokenId
+    // Params: from, to, tokenId
 
     // use try catch? so that the subgraph continues and not crash the entire thing when something happens
 
-    // Should be before or after the Domain entity??
     loadUserEntity(event.params.to)
     loadUserEntity(event.params.from)
 
-    // Set the owner and wrappedDomainOwner (on the Domain entity)
+    // Set the wrappedDomainOwner (on the Domain entity) and owner (on the WrappedDomain entity)
     let wrapperContract = LinageeWrapper.bind(event.address)
     let domain = wrapperContract.idToName(event.params.tokenId)
     let domainEntity = loadDomainEntity(domain.toHexString())
 
-    domainEntity.owner = event.params.to.toHexString()
     domainEntity.wrappedDomainOwner = event.params.to.toHexString()
-
-    // if (!domainEntity.blockNumber) {
-    //     domainEntity.blockNumber = event.block.number
-    // }
-    // if (!domainEntity.reserveDate) {
-    //     domainEntity.reserveDate = event.block.timestamp
-    // }
 
     domainEntity.save()
 
@@ -242,7 +252,7 @@ export function handleTransfer(event: Transfer): void {
  * @param event
  */
 export function handleUnwrapped(event: Unwrapped): void {
-    // pairId, owner, namer
+    // Params: pairId, owner, namer
 
     // Should be before or after the Domain entity??
     loadUserEntity(event.params.owner)
@@ -265,4 +275,4 @@ export function handleUnwrapped(event: Unwrapped): void {
     stats.save();
 }
 
-// -------------------------------- End Event handlers ----------------------------------
+// -------------------------------- End Event handlers for linagee  wrapper --------------------------------
