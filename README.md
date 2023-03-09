@@ -2,6 +2,12 @@
 
 ##### Linagee subgraph to keep track of tokens minted by users
 
+# Deployed url
+Currently this subgraph is deployed [here](https://thegraph.com/hosted-service/subgraph/chriton/linagee). 
+You can deploy your own or use that one. 
+
+Remember that for queries from your React app you must use the API url like for example: https://api.thegraph.com/subgraphs/name/chriton/linagee
+
 # How to deploy this subgraph
 
 - Create an account at [thegraph](https://thegraph.com/)
@@ -16,7 +22,7 @@ yarn global add @graphprotocol/graph-cli
 # INSTALL THE DEPENDENCIES
 yarn install
 
-# AUTH AND DEPLOY. KEY IS IN THEGRAPH PAGE
+# AUTH AND DEPLOY. KEY IS IN THEGRAPH PAGE (https://thegraph.com/hosted-service/subgraph/chriton/linagee
 graph auth --studio {your_key}
 
 # BUILD THE SUBGRAPH
